@@ -7,16 +7,15 @@ import {
 } from 'aws-cdk-lib/aws-codebuild'
 import * as iam from 'aws-cdk-lib/aws-iam';
 
-export interface PipelineUtilsProps {
+interface PipelineUtilsProps extends cdk.StackProps {
   prefix: string,
   env_name: string
 }
 
 export class PipelineUtilsStack extends cdk.Stack {
-  
-  
   constructor(scope: Construct, id: string, props: PipelineUtilsProps) {
-    super(scope, id);
+    super(scope, id, props);
+
 
 
     const linting_project = new PipelineProject(this, props.prefix + "-linting-codebuild", {
@@ -92,10 +91,10 @@ export class PipelineUtilsStack extends cdk.Stack {
               'git secrets --register-aws --global',
               'cd "$BASIC_FOLDER"',
               `  git rev-parse --git-dir > /dev/null 2>&1 || {
-                           git init --quiet
-                           git add -A .
-                        }
-                        `,
+                             git init --quiet
+                             git add -A .
+                          }
+                          `,
               "git secrets --add --allowed 'config/*'",
               "git secrets --scan"
             ],
@@ -166,13 +165,14 @@ export class PipelineUtilsStack extends cdk.Stack {
         },
       }),
     });
-/*
-    deploy_project.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ['sts:AssumeRole'],
-        resources: ['*'],
-      })
-    );
-*/
+    /*
+        deploy_project.addToRolePolicy(
+          new iam.PolicyStatement({
+            actions: ['sts:AssumeRole'],
+            resources: ['*'],
+          })
+        );
+    */
+
   }
 }
