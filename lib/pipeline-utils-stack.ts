@@ -9,7 +9,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 
 interface PipelineUtilsProps extends cdk.StackProps {
   prefix: string,
-  env_name: string
+  env_name: string,
+  target_env: cdk.Environment
 }
 
 export class PipelineUtilsStack extends cdk.Stack {
@@ -138,6 +139,9 @@ export class PipelineUtilsStack extends cdk.Stack {
       }),
     });
 
+    const cross_env_role_arn = "arn:aws:iam::" + props.target_env.account +
+      ":role/" + props.prefix + "-cross-env-role"
+
     const deploy_project = new PipelineProject(this, props.prefix + "-deploy-codebuild", {
       projectName: props.prefix + "-deploy-codebuild",
       environment: {
@@ -159,20 +163,25 @@ export class PipelineUtilsStack extends cdk.Stack {
           build: {
             commands: [
               'npm install',
-              `cdk deploy --all -c config=${props.env_name} --method=direct --require-approval never`,
+              'echo "Assuming role ' + cross_env_role_arn + '"',
+              'credentials=$(aws sts assume-role --role-arn \"' + cross_env_role_arn + '\" --role-session-name \"target_profile\")',
+              "aws configure set aws_access_key_id $(echo \"$credentials\" | jq -r '.Credentials.AccessKeyId') --profile \"target_profile\"" ,
+              "aws configure set aws_secret_access_key $(echo \"$credentials\" | jq -r '.Credentials.SecretAccessKey') --profile \"target_profile\"",
+              "aws configure set aws_session_token $(echo \"$credentials\" | jq -r '.Credentials.SessionToken') --profile \"target_profile\"",
+              'echo "credentials stored in the profile named target_profile"',
+              'cdk deploy --all -c config=' + props.env_name + ' --method=direct --require-approval never',
             ],
           },
         },
       }),
     });
-    /*
-        deploy_project.addToRolePolicy(
-          new iam.PolicyStatement({
-            actions: ['sts:AssumeRole'],
-            resources: ['*'],
-          })
-        );
-    */
+
+    deploy_project.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sts:AssumeRole'],
+        resources: [cross_env_role_arn],
+      })
+    );
 
   }
 }
