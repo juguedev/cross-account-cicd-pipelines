@@ -29,7 +29,7 @@ const pipelineUtilsStack = new PipelineUtilsStack(app, "pipelineUtilsStack", {
 });
 
 const targetStack = new TargetStack(app, "targetStack", {
-  env: env_devops,
+  env: env_target,
   env_name: "dev",
   prefix: "testing",
   env_devops: env_devops,

@@ -30,11 +30,20 @@ export class TargetStack extends cdk.Stack {
                 statements: [
                     new iam.PolicyStatement({
                         actions: ['sts:AssumeRole'],
-                        resources: ["arn:aws:iam::" + props.env_devops.account + ":role/cdk-*"],
+                        resources: ["arn:aws:iam::" + this.account + ":role/cdk-*"],
+                        effect: iam.Effect.ALLOW,
+                    }),
+                    new iam.PolicyStatement({
+                        actions: [
+                            "ssm:DescribeParameters",
+                            "ssm:GetParameter"
+                        ],
+                        resources: ["arn:aws:ssm:" + this.region + ":" + this.account + ":parameter/cdk-*"],
                         effect: iam.Effect.ALLOW,
                     }),
                 ],
             });
+
 
         cross_account_role.attachInlinePolicy(deployPolicy);
 

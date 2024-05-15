@@ -191,7 +191,7 @@ export class PipelineUtilsStack extends cdk.Stack {
               "aws configure set aws_secret_access_key $(echo \"$credentials\" | jq -r '.Credentials.SecretAccessKey') --profile \"target_profile\"",
               "aws configure set aws_session_token $(echo \"$credentials\" | jq -r '.Credentials.SessionToken') --profile \"target_profile\"",
               'echo "credentials stored in the profile named target_profile"',
-              'cdk deploy --all -c config=' + props.env_name + ' --method=direct --require-approval never',
+              'cdk deploy --all -c config=' + props.env_name + ' --method=direct --require-approval never --profile=target_profile',
             ],
           },
         },
