@@ -17,6 +17,21 @@ export class PipelineUtilsStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: PipelineUtilsProps) {
     super(scope, id, props);
 
+    
+    const s3PolicyStatementProject = new iam.PolicyStatement({
+      actions: [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:GetBucketAcl",
+        "s3:GetBucketLocation"
+      ],
+      resources: [
+        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts',
+        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts/*',
+      ],
+      effect: iam.Effect.ALLOW,
+    });
 
 
     const linting_project = new PipelineProject(this, props.prefix + "-linting-codebuild", {
@@ -24,6 +39,7 @@ export class PipelineUtilsStack extends cdk.Stack {
       environment: {
         buildImage: LinuxBuildImage.STANDARD_7_0,
       },
+      timeout: cdk.Duration.minutes(100),
       buildSpec: BuildSpec.fromObject({
         version: '0.2',
         phases: {
@@ -34,11 +50,15 @@ export class PipelineUtilsStack extends cdk.Stack {
             commands: ['node -v'],
           },
           build: {
-            commands: ['cd ./cdk-code', 'npm install', 'npm run eslint'],
+            commands: [
+              'npm install',
+              'npm run eslint'
+            ],
           },
         },
       }),
     });
+    linting_project.addToRolePolicy(s3PolicyStatementProject);
 
     // Crear un CodeBuild para Security
     const cfn_nag_project = new PipelineProject(this, props.prefix + "-cfn-nag-codebuild", {
@@ -58,13 +78,13 @@ export class PipelineUtilsStack extends cdk.Stack {
           },
           build: {
             commands: [
-              'cd ./cdk-code',
               'find ./cdk.out -type f -name "*.template.json" | xargs -I {} cfn_nag_scan --deny-list-path cfn-nag-deny-list.yml --input-path {}',
             ],
           },
         },
       }),
     });
+    cfn_nag_project.addToRolePolicy(s3PolicyStatementProject);
 
     // Crear un CodeBuild para Security
     const git_secrets_project = new PipelineProject(this, props.prefix + "-git-secrets-codebuild", {
@@ -103,6 +123,7 @@ export class PipelineUtilsStack extends cdk.Stack {
         },
       }),
     });
+    git_secrets_project.addToRolePolicy(s3PolicyStatementProject);
 
 
     // Crear un CodeBuild para Synth
@@ -138,6 +159,7 @@ export class PipelineUtilsStack extends cdk.Stack {
         },
       }),
     });
+    build_project.addToRolePolicy(s3PolicyStatementProject);
 
     const cross_env_role_arn = "arn:aws:iam::" + props.target_env.account +
       ":role/" + props.prefix + "-cross-env-role"
@@ -175,6 +197,7 @@ export class PipelineUtilsStack extends cdk.Stack {
         },
       }),
     });
+    deploy_project.addToRolePolicy(s3PolicyStatementProject);
 
     deploy_project.addToRolePolicy(
       new iam.PolicyStatement({

@@ -11,6 +11,7 @@ import {
 import {
     Project,
 } from 'aws-cdk-lib/aws-codebuild'
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 interface PipelineProps extends cdk.StackProps {
     env_name: string,
@@ -36,6 +37,26 @@ export class PipelineStack extends cdk.Stack {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
             encryption: s3.BucketEncryption.S3_MANAGED,
         });
+
+        // Define the policy statement
+        const codeBuildPolicyStatement = new iam.PolicyStatement({
+            actions: [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation"
+            ],
+            resources: [
+                s3ArtifactsBucket.bucketArn,
+                `${s3ArtifactsBucket.bucketArn}/*`
+            ],
+            effect: iam.Effect.ALLOW,
+            principals: [new iam.ServicePrincipal('codebuild.amazonaws.com')],
+        });
+
+        // Attach the policy statement to the bucket
+        s3ArtifactsBucket.addToResourcePolicy(codeBuildPolicyStatement);
 
         const linter_project = Project.fromProjectName(
             this,
@@ -82,20 +103,6 @@ export class PipelineStack extends cdk.Stack {
             input: sourceArtifact,
         });
 
-
-        const cfn_nag_action = new CodeBuildAction({
-            actionName: props.prefix + '-cfn-nag-action',
-            project: cfn_nag_project,
-            input: sourceArtifact,
-        });
-
-
-        const git_secrets_action = new CodeBuildAction({
-            actionName: props.prefix + '-git-secrets-action',
-            project: git_secrets_project,
-            input: sourceArtifact,
-        });
-
         const buildArtifact = new Artifact(props.prefix + "-build-artifact");
         const build_action = new CodeBuildAction({
             actionName: props.prefix + '-build-action',
@@ -103,6 +110,20 @@ export class PipelineStack extends cdk.Stack {
             input: sourceArtifact,
             outputs: [buildArtifact],
 
+        });
+
+
+        const cfn_nag_action = new CodeBuildAction({
+            actionName: props.prefix + '-cfn-nag-action',
+            project: cfn_nag_project,
+            input: buildArtifact,
+        });
+
+
+        const git_secrets_action = new CodeBuildAction({
+            actionName: props.prefix + '-git-secrets-action',
+            project: git_secrets_project,
+            input: sourceArtifact,
         });
 
 
