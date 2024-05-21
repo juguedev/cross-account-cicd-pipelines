@@ -29,7 +29,7 @@ export class PipelineStack extends cdk.Stack {
 
         // Crear el bucket S3 para los Artefactos
         const s3ArtifactsBucket = new s3.Bucket(this, 'S3Bucket', {
-            bucketName: props.prefix + '-app-pipeline-artifacts',
+            bucketName: props.prefix + '-app-pipeline-artifacts-' + this.account,
             enforceSSL: true,
             accessControl: s3.BucketAccessControl.PRIVATE,
             removalPolicy: cdk.RemovalPolicy.DESTROY,

@@ -27,8 +27,8 @@ export class PipelineUtilsStack extends cdk.Stack {
         "s3:GetBucketLocation"
       ],
       resources: [
-        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts',
-        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts/*',
+        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts-'+ this.account,
+        'arn:aws:s3:::' + props.prefix + '-app-pipeline-artifacts-'+ this.account + '/*',
       ],
       effect: iam.Effect.ALLOW,
     });
