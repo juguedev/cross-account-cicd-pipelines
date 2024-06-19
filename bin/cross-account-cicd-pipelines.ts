@@ -35,6 +35,10 @@ const targetStack = new TargetStack(app, "targetStack", {
   env_devops: env_devops,
 });
 
+const monitoringStack = new PipelineMonitoringStack(app, "monitoringStack", {
+  env: env_target,
+});
+
 pipelineStack.addDependency(pipelineUtilsStack)
 
 app.synth();
